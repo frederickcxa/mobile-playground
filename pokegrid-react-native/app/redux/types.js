@@ -1,0 +1,3 @@
+export const ACTIONS_POKEMONS = {
+    ADD_POKEMON: 'ADD_POKEMON'
+};
