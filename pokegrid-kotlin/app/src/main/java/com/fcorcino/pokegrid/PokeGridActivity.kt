@@ -4,13 +4,13 @@ import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
-import android.widget.TextView
 import com.squareup.picasso.Picasso
 import kotlinx.android.synthetic.main.activity_poke_grid.*
+import kotlinx.android.synthetic.main.item_pokemon.view.*
 import okhttp3.*
 import org.json.JSONObject
 import java.io.IOException
@@ -20,6 +20,7 @@ const val BASE_API_URL = "https://pokeapi.co/api/v2"
 const val BASE_IMAGE_URL = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon"
 const val VISIBLE_THRESHOLD = 25
 const val OFFSET_STEPS = 50
+const val TAG = "PokeGridActivity"
 
 // Models
 data class Pokemon(val number: String, val name: String)
@@ -71,31 +72,30 @@ class PokeGridActivity : AppCompatActivity() {
                 .build()
 
         httpClient.newCall(request).enqueue(object : Callback {
-            override fun onFailure(call: Call?, e: IOException?) {}
+            override fun onFailure(call: Call?, e: IOException) {
+                Log.e(TAG, "Error consuming API", e)
+            }
 
-            override fun onResponse(call: Call?, response: Response?) {
-                response?.let {
-                    val results = JSONObject(it.body()?.string()).getJSONArray("results") ?: return
-                    val pokemons = (0 until results.length())
-                            .map { results.getJSONObject(it) }
-                            .map {
-                                val number = it.getString("url")
-                                        .removeSuffix("/")
-                                        .split("/")
-                                        .last()
+            override fun onResponse(call: Call?, response: Response) {
+                val results = JSONObject(response.body()?.string()).getJSONArray("results")
+                        ?: return
+                val pokemons = (0 until results.length())
+                        .map { index -> results.getJSONObject(index) }
+                        .map { jsonObject ->
+                            val number = jsonObject.getString("url")
+                                    .removeSuffix("/")
+                                    .split("/")
+                                    .last()
 
-                                Pokemon(
-                                        number = number,
-                                        name = it.getString("name")
-                                )
-                            }
+                            Pokemon(number, jsonObject.getString("name")
+                            )
+                        }
 
-                    loading = false
+                loading = false
 
-                    runOnUiThread {
-                        progressBar.visibility = View.GONE
-                        viewAdapter.addAll(*pokemons.toTypedArray())
-                    }
+                runOnUiThread {
+                    progressBar.visibility = View.GONE
+                    viewAdapter.addAll(*pokemons.toTypedArray())
                 }
             }
         })
@@ -105,19 +105,14 @@ class PokeGridActivity : AppCompatActivity() {
             private val pokemons: ArrayList<Pokemon> = ArrayList()
     ) : RecyclerView.Adapter<PokemonAdapter.ViewHolder>() {
 
-        inner class ViewHolder(item: View) : RecyclerView.ViewHolder(item) {
-            val pokemonNameText = item.findViewById(R.id.pokemonNameText) as TextView
-            val pokemonNumberText = item.findViewById(R.id.pokemonNumberText) as TextView
-            val pokemonImage = item.findViewById(R.id.pokemonImage) as ImageView
-
+        inner class ViewHolder(private val item: View) : RecyclerView.ViewHolder(item) {
             fun bind(pokemon: Pokemon) {
                 with(pokemon) {
-                    val imageUrl = "$BASE_IMAGE_URL/$number.png"
-                    pokemonNameText.text = name.capitalize()
-                    pokemonNumberText.text = "#$number"
-                    imageHandler.load(imageUrl)
+                    item.pokemonNameText.text = name.capitalize()
+                    item.pokemonNumberText.text = "#$number"
+                    imageHandler.load("$BASE_IMAGE_URL/$number.png")
                             .placeholder(R.drawable.poke_ball)
-                            .into(pokemonImage)
+                            .into(item.pokemonImage)
                 }
             }
         }

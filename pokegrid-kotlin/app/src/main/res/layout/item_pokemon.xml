@@ -34,5 +34,4 @@
         android:layout_marginRight="@dimen/margin_standard"
         android:textSize="@dimen/text_size_body"
         tools:text="#1" />
-
 </LinearLayout>
