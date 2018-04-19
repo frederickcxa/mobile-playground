@@ -33,7 +33,7 @@ export const DIVIDER_COLOR = '#BDBDBD';
 export const APP_NAME = 'PokeGrid';
 export const ANDROID_OS = 'android';
 
-// Api constants
+// API constants
 const BASE_URL = 'https://pokeapi.co/api/v2';
 const IMAGE_BASE_URL = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon';
 const PATH_POKEMON = 'pokemon';
@@ -41,20 +41,18 @@ const PATH_POKEMON = 'pokemon';
 // Utils functions
 const setPokemons = (pokemons) => {
   AsyncStorage.setItem(POKEMONS_KEY, JSON.stringify(pokemons))
-    .then(json => console.log(json, 'saved'))
-    .catch(error => console.log(error));
+    .catch(console.log);
 };
 
 const getPokemons = () => {
   return AsyncStorage.getItem(POKEMONS_KEY)
     .then(json => JSON.parse(json))
-    .catch(error => console.log(error));
+    .catch(console.log);
 };
-
-const isAndroid = () => Platform.OS === ANDROID_OS;
 
 const mapItemToPokemon = (item) => {
   const { name, url } = item;
+
   const segments = url.split('/');
   const number = segments.pop() || segments.pop();
 
@@ -74,17 +72,27 @@ const fetchPoke = (offset) => {
     .then(response => response.json())
     .then(responseJson => responseJson.results)
     .then(items => items.map(mapItemToPokemon))
-    .catch(error => {
-      console.log(error);
-    });
+    .catch(console.log);
 };
 
 // Components
 const ProgressBar = ({ size = 'large', color = PRIMARY_COLOR, ...props }) => (
-  <View style={{ justifyContent: 'center', alignContent: 'center' }}>
+  <View style={progressBarStyles.container}>
     <ActivityIndicator size={size} color={color} {...props}/>
   </View>
 );
+
+ProgressBar.propTypes = {
+  color: string.isRequired,
+  size: string
+};
+
+const progressBarStyles = {
+  container: {
+    justifyContent: 'center',
+    alignContent: 'center'
+  }
+};
 
 class PokemonItem extends React.Component {
   shouldComponentUpdate(nextProps, nextState) {
@@ -151,7 +159,7 @@ const pokemonItemStyles = StyleSheet.create({
   }
 });
 
-const PokemonList = ({ onRefresh = () => {}, pokemons, ...props }) => {
+const PokemonList = ({ onRefresh = () => {}, pokemons = [], ...props }) => {
   return (
     <View>
       {pokemons.length === 0
@@ -182,12 +190,10 @@ class PokeGrid extends Component {
     getPokemons()
       .then(pokemons => {
         pokemons.length
-          ? this.setState({ pokemons })
+          ? this.fetchPokemons()
           : this.fetchPokemons();
       })
-      .catch(error => {
-        this.fetchPokemons();
-      })
+      .catch(this.fetchPokemons)
   }
 
   fetchPokemons = () => {
@@ -197,18 +203,16 @@ class PokeGrid extends Component {
       this.setState({ isFetching: true });
       fetchPoke(pokemons.length)
         .then(data => {
-          const parsedPokemons = data.map(mapItemToPokemon);
-          const allPokemons = [...pokemons, ...parsedPokemons];
+          const allPokemons = [...pokemons, ...data];
 
-          this.setState({ pokemons: allPokemons });
+          this.setState({ pokemons: allPokemons, isFetching: false });
           setPokemons(allPokemons);
-          this.setState({ isFetching: false });
         });
     }
   };
 
   render() {
-    const { pokemons } = this.props;
+    const { pokemons } = this.state;
 
     return (
       <View style={pokeGridStyles.appContainer}>
@@ -219,9 +223,9 @@ class PokeGrid extends Component {
             translucent
           />
         </View>
-        {isAndroid() &&
+        {Platform.OS === ANDROID_OS &&
         <ToolbarAndroid
-          logo={require('../assets/images/app_logo.png')}
+          logo={require('./app/assets/images/app_logo.png')}
           style={pokeGridStyles.androidToolbar}
           title={APP_NAME}
           titleColor={WHITE}
@@ -259,10 +263,6 @@ const pokeGridStyles = StyleSheet.create({
   }
 });
 
-export default class App extends React.Component {
-  render() {
-    return (
-      <PokeGrid/>
-    );
-  }
-};
+export default () => (
+  <PokeGrid/>
+);
