@@ -1,4 +1,4 @@
-# Mobile Stuff
+# Mobile Playground
 
 ### Description
 
@@ -39,6 +39,7 @@ dex.
 - ~~[React Native client](https://facebook.github.io/react-native/)~~.
 - ~~[Flutter client](https://flutter.io/)~~.
 - ~~Add lazy loading until all pokemon are fetched~~.
+- Add thoughts/notes about findings on using each tool.
 - Local cache.
 - Be able to mark a pokemon as favorite and display the favorites one in
 another list.
